@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8" />
+<body>
+    <div id="demo"></div>
+    <script>
+        const howFar = 里程;
+        const howLong = 时长;
+
+        const now = new Date();
+        const later = new Date(now.getTime() + howLong * 60 * 1000);
+        const nowHour = now.getHours();
+        const laterHour = later.getHours();
+        const trueFar = howFar - 3;
+        const points = [0, 6, 10, 17, 19, 21, 22.5, 24];
+
+        const between = (start, end, later) => {
+            const hour = later ? new Date(later).getHours() : nowHour;
+            return hour > start && hour <= end;
+        }
+        const price = {
+            spacious: {
+                freeTime: 9,
+                basic: between(10, 17) ? 13.1 : between(17, 19) ? 14.5 : 14.2,
+                far: {
+                    '0-6': 2.13,
+                    '6-10': 1.72,
+                    '10-17': 1.33,
+                    '17-19': 1.56,
+                    '19-21': 1.5,
+                    '21-22.5': 2.13,
+                    '22.5-24': 2.13,
+                },
+                minute: {
+                    '0-6': 0.55,
+                    '6-10': 0.55,
+                    '10-17': 0.26,
+                    '17-19': 0.55,
+                    '19-21': 0.55,
+                    '21-22.5': 0.55,
+                    '22.5-24': 0.55,
+                },
+                inCity: 0.3,
+                outCity: 1.2,
+            },
+            normal: {
+                freeTime: 12,
+                basic: between(10, 17) ? 11.2 : between(19, 22.5) ? 11.8 : 12,
+                far: {
+                    '0-6': 1.7,
+                    '6-10': 1.3,
+                    '10-17': 1.13,
+                    '17-19': 1.3,
+                    '19-21': 1.25,
+                    '21-22.5': 1.65,
+                    '22.5-24': 1.7,
+                },
+                minute: {
+                    '0-6': 0.4,
+                    '6-10': 0.5,
+                    '10-17': 0.24,
+                    '17-19': 0.5,
+                    '19-21': 0.5,
+                    '21-22.5': 0.4,
+                    '22.5-24': 0.4,
+                },
+                inCity: 0.3,
+                outCity: 1.2,
+            },
+        };
+
+        const pay = {};
+        
+        const payByLevel = ({level, active, end, next}) => {
+            let tocal = 0;
+
+            if (next) {
+                const endDate = new Date();
+                endDate.setHours(end, 0, 0);
+                const activeMin = (endDate.getTime() -  now.getTime()) / 1000 / 60;
+                const activeFar = activeMin / howLong * howFar;
+                tocal = price[level].basic + price[level].far[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeFar - 3, 0)) + price[level].minute[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeMin - price[level].freeTime, 0));
+                tocal += price[level].far[`${end}-${next}`] * (howFar - Math.max(activeFar, 3)) + price[level].minute[`${end}-${next}`] * (howLong - Math.max(activeMin, price[level].freeTime)); 
+            } else {
+                tocal = price[level].basic + price[level].far[`${active}-${end}`] * trueFar + price[level].minute[`${active}-${end}`] * (howLong - price[level].freeTime);
+            }
+            if (howFar > 20) {
+                tocal += price[level].inCity * Math.min(howFar - 20, 20);
+                tocal += price[level].outCity * Math.max(howFar - 40, 0);
+            }
+            pay[level] = tocal;
+        };
+
+        for (let index = 0; index < points.length; index++) {
+            const active = points[index];
+            const end = points[index + 1];
+            if (nowHour >= active && end && nowHour < end) {
+                let opt = {};
+                if (laterHour >= active && laterHour < end) {
+                    // 两个时间都在同一段时间内
+                    opt = { active, end, };
+                } else {
+                    // 两个时间不在同一段时间内
+                    const next = points[index + 2] ? points[index + 2] : points[1];
+                    const end = points[index + 2] ? points[index + 1] : points[0];
+                    opt = { active, end, next, };
+                }
+                payByLevel({ level: 'spacious', ...opt,});
+                payByLevel({ level: 'normal', ...opt,});
+                break;
+            }
+        }
+
+              document.getElementById("demo").innerHTML = `${howFar} / ${nowHour}:${now.getMinutes()}-${laterHour}:${later.getMinutes()}<br/>${pay.spacious.toFixed(0)} - ${pay.normal.toFixed(0)}`;
+
+    </script>
+</body>
+
+</html>
