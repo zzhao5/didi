@@ -1,93 +1,140 @@
 <!DOCTYPE html>
 <html>
+<head>
 <meta charset="utf-8" />
+<link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<meta name="theme-color" content="#000000" />
+<title>滴滴价格更新追踪</title>
+<style>
+    body {
+        text-align: center;
+    }
+    input {
+        margin-top: 30%;
+        margin-bottom: 30px;
+        border-radius: 20px;
+        border: 1px solid #ddd;
+        width: 90%;
+        height: 100px;
+        font-size: 50px;
+        text-align: center;
+    }
+    button {
+        width: 160px;
+        height: 60px;
+        font-size: 30px;
+        background-color: #f0f0f0;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        color: #333;
+    }
+    div {
+        padding-top: 100px;
+        font-size: 30px;
+    }
+</style>
+</head>
 <body>
+    <input type="number" id="enter" /> <button id="submit">确定</button>
     <div id="demo"></div>
     <script>
-        const howFar = 里程;
-        const howLong = 时长;
-        const rules = 输入;
+        document.getElementById("submit").onclick = () => {
+            var xhr = new XMLHttpRequest();
+            xhr.open('get', 'https://raw.githubusercontent.com/zzhao5/didi/main/rules.json', true);
+            xhr.send();
+            xhr.onreadystatechange = function () {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                const rules = JSON.parse(xhr.responseText);
 
-        const now = new Date();
-        const later = new Date(now.getTime() + howLong * 60 * 1000);
-        const nowHour = now.getHours();
-        const laterHour = later.getHours();
-        const trueFar = howFar - 3;
-        const points = [0, 6, 10, 17, 19, 21, 22.5, 24];
+                const text = document.getElementById("enter").value;
+                if (text === '') return;
+                const howFar = text.split(".")[0];
+                const howLong = text.split(".")[1];
 
-        const between = (start, end, later) => {
-            const hour = later ? new Date(later).getHours() : nowHour;
-            return hour > start && hour <= end;
-        };
-        const price = {
-            spacious: {
-                freeTime: 9,
-                basic: between(10, 17) ? 13.1 : between(17, 19) ? 14.5 : 14.2,
-                far: {},
-                minute: {},
-                inCity: 0.3,
-                outCity: 1.2,
-            },
-            normal: {
-                freeTime: 12,
-                basic: between(10, 17) ? 11.2 : between(19, 22.5) ? 11.8 : 12,
-                far: {},
-                minute: {},
-                inCity: 0.3,
-                outCity: 1.2,
-            },
-        };
-        Object.keys(rules).forEach(level => {
-            const item = rules[level];
-            price.spacious.far[level] = item.spacious.far;
-            price.spacious.minute[level] = item.spacious.minute;
-            price.normal.far[level] = item.normal.far;
-            price.normal.minute[level] = item.normal.minute;
-        });
+                const now = new Date();
+                const later = new Date(now.getTime() + howLong * 60 * 1000);
+                const nowHour = now.getHours();
+                const laterHour = later.getHours();
+                const trueFar = howFar - 3;
+                const points = [0, 6, 10, 17, 19, 21, 22.5, 24];
 
-        const pay = {};
-        
-        const payByLevel = ({level, active, end, next}) => {
-            let tocal = 0;
+                const between = (start, end, later) => {
+                    const hour = later ? new Date(later).getHours() : nowHour;
+                    return hour > start && hour <= end;
+                };
+                const price = {
+                    spacious: {
+                        freeTime: 9,
+                        basic: between(10, 17) ? 13.1 : between(17, 19) ? 14.5 : 14.2,
+                        far: {},
+                        minute: {},
+                        inCity: 0.3,
+                        outCity: 1.2,
+                    },
+                    normal: {
+                        freeTime: 12,
+                        basic: between(10, 17) ? 11.2 : between(19, 22.5) ? 11.8 : 12,
+                        far: {},
+                        minute: {},
+                        inCity: 0.3,
+                        outCity: 1.2,
+                    },
+                };
+                Object.keys(rules).forEach(level => {
+                    const item = rules[level];
+                    price.spacious.far[level] = item.spacious.far;
+                    price.spacious.minute[level] = item.spacious.minute;
+                    price.normal.far[level] = item.normal.far;
+                    price.normal.minute[level] = item.normal.minute;
+                });
 
-            if (next) {
-                const endDate = new Date();
-                endDate.setHours(end, 0, 0);
-                const activeMin = (endDate.getTime() -  now.getTime()) / 1000 / 60;
-                const activeFar = activeMin / howLong * howFar;
-                tocal = price[level].basic + price[level].far[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeFar - 3, 0)) + price[level].minute[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeMin - price[level].freeTime, 0));
-                tocal += price[level].far[`${end}-${next}`] * (howFar - Math.max(activeFar, 3)) + price[level].minute[`${end}-${next}`] * (howLong - Math.max(activeMin, price[level].freeTime)); 
-            } else {
-                tocal = price[level].basic + price[level].far[`${active}-${end}`] * trueFar + price[level].minute[`${active}-${end}`] * (howLong - price[level].freeTime);
+                const pay = {};
+                
+                const payByLevel = ({level, active, end, next}) => {
+                    let tocal = 0;
+
+                    if (next) {
+                        const endDate = new Date();
+                        endDate.setHours(end, 0, 0);
+                        const activeMin = (endDate.getTime() -  now.getTime()) / 1000 / 60;
+                        const activeFar = activeMin / howLong * howFar;
+                        tocal = price[level].basic + price[level].far[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeFar - 3, 0)) + price[level].minute[`${active}-${end === 0 ? 24 : end}`] * (Math.max(activeMin - price[level].freeTime, 0));
+                        tocal += price[level].far[`${end}-${next}`] * (howFar - Math.max(activeFar, 3)) + price[level].minute[`${end}-${next}`] * (howLong - Math.max(activeMin, price[level].freeTime)); 
+                    } else {
+                        tocal = price[level].basic + price[level].far[`${active}-${end}`] * trueFar + price[level].minute[`${active}-${end}`] * (howLong - price[level].freeTime);
+                    }
+                    if (howFar > 20) {
+                        tocal += price[level].inCity * Math.min(howFar - 20, 20);
+                        tocal += price[level].outCity * Math.max(howFar - 40, 0);
+                    }
+                    pay[level] = tocal;
+                };
+
+                for (let index = 0; index < points.length; index++) {
+                    const active = points[index];
+                    const end = points[index + 1];
+                    if (nowHour >= active && end && nowHour < end) {
+                        let opt = {};
+                        if (laterHour >= active && laterHour < end) {
+                            // 两个时间都在同一段时间内
+                            opt = { active, end, };
+                        } else {
+                            // 两个时间不在同一段时间内
+                            const next = points[index + 2] ? points[index + 2] : points[1];
+                            const end = points[index + 2] ? points[index + 1] : points[0];
+                            opt = { active, end, next, };
+                        }
+                        payByLevel({ level: 'spacious', ...opt,});
+                        payByLevel({ level: 'normal', ...opt,});
+                        break;
+                    }
+                };
+                document.getElementById("demo").innerHTML = `${howFar} / ${nowHour}:${now.getMinutes()}-${laterHour}:${later.getMinutes()}<br/>${pay.spacious.toFixed(0)} - ${pay.normal.toFixed(0)}`;
+
             }
-            if (howFar > 20) {
-                tocal += price[level].inCity * Math.min(howFar - 20, 20);
-                tocal += price[level].outCity * Math.max(howFar - 40, 0);
-            }
-            pay[level] = tocal;
-        };
-
-        for (let index = 0; index < points.length; index++) {
-            const active = points[index];
-            const end = points[index + 1];
-            if (nowHour >= active && end && nowHour < end) {
-                let opt = {};
-                if (laterHour >= active && laterHour < end) {
-                    // 两个时间都在同一段时间内
-                    opt = { active, end, };
-                } else {
-                    // 两个时间不在同一段时间内
-                    const next = points[index + 2] ? points[index + 2] : points[1];
-                    const end = points[index + 2] ? points[index + 1] : points[0];
-                    opt = { active, end, next, };
-                }
-                payByLevel({ level: 'spacious', ...opt,});
-                payByLevel({ level: 'normal', ...opt,});
-                break;
-            }
-        };
-        document.getElementById("demo").innerHTML = `${howFar} / ${nowHour}:${now.getMinutes()}-${laterHour}:${later.getMinutes()}<br/>${pay.spacious.toFixed(0)} - ${pay.normal.toFixed(0)}`;
-
+        }
+        }
     </script>
 </body>
 
